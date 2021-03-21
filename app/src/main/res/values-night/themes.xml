@@ -1,0 +1,12 @@
+<resources>
+    <!-- Base application theme. -->
+    <style name="Theme.Discussions" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- For edge-to-edge drawing -->
+        <item name="android:navigationBarColor">
+            #b3000000
+        </item>
+        <item name="android:statusBarColor">
+            @android:color/transparent
+        </item>
+    </style>
+</resources>
