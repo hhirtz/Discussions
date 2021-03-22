@@ -1,7 +1,6 @@
 package site.srht.taiite.discussions.irc
 
 import android.util.Base64
-import android.util.Log
 import io.ktor.network.sockets.*
 import io.ktor.util.cio.*
 import kotlinx.coroutines.*
@@ -34,21 +33,21 @@ class SASLPlain(private val username: String, private val password: String) : SA
 private val supportedCapabilities = setOf(
     "draft/chathistory",
 
-    "account-notify",
-    "account-tag",
-    "away-notify",
+    //"account-notify",
+    //"account-tag",
+    //"away-notify",
     "batch",
     "cap-notify",
     "echo-message",
     "extended-join",
     "invite-notify",
-    "labeled-response",
+    //"labeled-response",
     "message-tags",
-    "multi-prefix",
+    //"multi-prefix",
     "server-time",
     "sasl",
-    "setname",
-    "userhost-in-names",
+    //"setname",
+    //"userhost-in-names",
 )
 
 data class IRCSessionParams(
