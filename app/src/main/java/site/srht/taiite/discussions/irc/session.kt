@@ -62,8 +62,7 @@ private class ChBatch(val target: String, val messages: MutableList<IMMessage> =
 class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
     private val out = writeChannel(conn)
 
-    private val _state =
-        MutableIRCState(params.nickname, params.username, params.realName)
+    private val _state = MutableIRCState(params.nickname, params.username, params.realName)
     val state: IRCState = _state
 
     private val _events = Channel<IRCEvent>(64)
@@ -293,7 +292,8 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                     // JOIN event is on RPL_ENDOFNAMES
                 } else {
                     val channel = this._state.channels[channelCM] ?: return
-                    val user = this._state.users.computeIfAbsent(nickCM) { IRCUser(msg.prefix.copy()) }
+                    val user =
+                        this._state.users.computeIfAbsent(nickCM) { IRCUser(msg.prefix.copy()) }
                     channel.members[user] = ""
                 }
             }
@@ -379,9 +379,9 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                 channel.topic.value = ""
             }
             "TOPIC" -> {
-                val channelCM = this._state.casemap(msg.params[1])
+                val channelCM = this._state.casemap(msg.params[0])
                 val channel = this._state.channels[channelCM] ?: return
-                        val at = msg.dateOrNow()
+                val at = msg.dateOrNow()
                 channel.topic.value = msg.params[1]
                 channel.topicWho = msg.prefix!!.copy()
                 channel.topicTime = at
