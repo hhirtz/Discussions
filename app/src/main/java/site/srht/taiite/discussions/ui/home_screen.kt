@@ -12,7 +12,10 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -35,7 +38,7 @@ fun HomeScreen(
 ) {
     val joinChannelFormShown = remember { mutableStateOf(false) }
     Scaffold(
-        topBar = { HomeTopBar(nickname, channelList) },
+        topBar = { HomeTopBar(nickname) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { joinChannelFormShown.value = true },
@@ -66,24 +69,9 @@ fun HomeScreen(
 }
 
 @Composable
-fun HomeTopBar(nickname: String, channels: List<IRCChannel>) {
+fun HomeTopBar(nickname: String) {
     InsetAwareTopAppBar(
-        title = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = nickname,
-                    style = MaterialTheme.typography.subtitle1,
-                )
-                CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
-                    Text(
-                        text = "${channels.size} channels",
-                        style = MaterialTheme.typography.caption,
-                    )
-                }
-            }
-        },
+        title = { Text(nickname) },
         actions = {
             Icon(
                 imageVector = Icons.Outlined.Settings,
