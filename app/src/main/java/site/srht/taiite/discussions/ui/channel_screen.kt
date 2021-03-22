@@ -94,17 +94,16 @@ fun ChannelTopBar(channel: IRCChannel) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    text = channel.name,
-                    style = MaterialTheme.typography.subtitle1,
-                )
-                CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
-                    Text(
-                        text = channel.topic.value,
-                        style = MaterialTheme.typography.caption,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                Text(channel.name)
+                if (channel.topic.value.isNotBlank()) {
+                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+                        Text(
+                            text = channel.topic.value,
+                            style = MaterialTheme.typography.caption,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         },
