@@ -1,8 +1,6 @@
 package site.srht.taiite.discussions.ui
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -25,13 +23,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.accompanist.insets.imePadding
-import dev.chrisbanes.accompanist.insets.navigationBarsHeight
+import dev.chrisbanes.accompanist.insets.navigationBarsWithImePadding
+import kotlinx.coroutines.launch
 import site.srht.taiite.discussions.irc.IMMessage
 import site.srht.taiite.discussions.irc.IRCChannel
-import dev.chrisbanes.accompanist.insets.navigationBarsWithImePadding
-import dev.chrisbanes.accompanist.insets.statusBarsHeight
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -244,14 +239,14 @@ fun UserInput(
     Column(modifier) {
         Divider()
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             UserInputText(
                 textFieldValue = textState,
                 onTextChanged = { textState = it },
                 modifier = Modifier
                     .weight(1f)
+                    .heightIn(min = 48.dp, max = 144.dp)
                     .align(Alignment.Bottom),
             )
 
@@ -307,8 +302,7 @@ private fun UserInputText(
     textFieldValue: TextFieldValue,
 ) {
     Box(
-        modifier = modifier
-            .height(48.dp),
+        modifier = modifier,
     ) {
         BasicTextField(
             value = textFieldValue,
