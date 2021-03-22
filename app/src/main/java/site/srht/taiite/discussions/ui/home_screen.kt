@@ -12,11 +12,10 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.accompanist.insets.LocalWindowInsets
 import dev.chrisbanes.accompanist.insets.navigationBarsPadding
 import dev.chrisbanes.accompanist.insets.toPaddingValues
+import kotlinx.coroutines.delay
 import site.srht.taiite.discussions.irc.IRCChannel
 
 @Composable
@@ -59,7 +59,7 @@ fun HomeScreen(
                 onSubmit = {
                     joinChannelFormShown.value = false
                     onChannelJoined(it)
-                }
+                },
             )
         }
     }
@@ -144,6 +144,7 @@ fun JoinChannelForm(
     onSubmit: (String) -> Unit,
 ) {
     val name = remember { mutableStateOf("") }
+    val textFieldFocus = FocusRequester()
     AlertDialog(
         onDismissRequest = dismiss,
         title = { Text("") }, // hack to add a margin above the outlined button.
@@ -166,8 +167,17 @@ fun JoinChannelForm(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Done,
                 ),
+                modifier = Modifier.focusRequester(textFieldFocus),
             )
         },
         modifier = Modifier.fillMaxWidth(0.8f),
     )
+    LaunchedEffect(null) { // Focus the text field when the popup is drawn.
+        // It seems the coroutine must be suspended (exited) once in order to show the keyboard,
+        // otherwise the text field receives the focus but does not show it.  The delay is set to 3
+        // frames (48ms) so that the async runtime has time to run the coroutine responsible for the
+        // composition of "OutlinedTextField" before this (looks pretty consistent so far).
+        delay(48)
+        textFieldFocus.requestFocus()
+    }
 }
