@@ -105,24 +105,35 @@ fun ChannelList(
 
 @Composable
 fun ChannelListItem(channel: IRCChannel, onClick: (String) -> Unit) {
+    val horizontalPadding = 16.dp
+    val verticalPadding = 8.dp
+    val dividerPadding = 4.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = { onClick(channel.name) })
+            .clickable { onClick(channel.name) }
     ) {
         Text(
             text = channel.name,
             style = MaterialTheme.typography.h6,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .padding(horizontal = horizontalPadding)
+                .padding(top = verticalPadding),
         )
         Text(
             text = channel.topic.value,
-            style = MaterialTheme.typography.subtitle1,
+            style = MaterialTheme.typography.caption,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .padding(horizontal = horizontalPadding)
+                .padding(bottom = verticalPadding),
         )
-        Divider()
+        Divider(
+            modifier = Modifier.padding(horizontal = dividerPadding),
+        )
     }
 }
 
