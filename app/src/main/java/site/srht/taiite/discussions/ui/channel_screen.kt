@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ fun ChannelScreen(
 ) {
     val messageListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val scrollToBottom: () -> Unit = { scope.launch { messageListState.scrollToItem(0) } }
     Scaffold(
         topBar = { ChannelTopBar(channel) },
     ) { innerPadding ->
@@ -47,17 +49,35 @@ fun ChannelScreen(
                 .padding(innerPadding)
                 .fillMaxSize(),
         ) {
-            Messages(
-                messages = channel.messages,
-                listState = messageListState,
-                modifier = Modifier.weight(1f),
-            )
-            UserInput(
-                onMessageSent = onMessageSent,
-                resetScroll = {
-                    scope.launch {
-                        messageListState.scrollToItem(0)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize(),
+            ) {
+                Messages(
+                    messages = channel.messages,
+                    listState = messageListState,
+                )
+                val firstVisibleIndex =
+                    messageListState.layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: 0
+                if (firstVisibleIndex != 0) {
+                    FloatingActionButton(
+                        onClick = scrollToBottom,
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .align(Alignment.BottomEnd),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.KeyboardArrowDown,
+                            contentDescription = "Scroll to bottom",
+                        )
                     }
+                }
+            }
+            UserInput(
+                onMessageSent = {
+                    onMessageSent(it)
+                    scrollToBottom()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -232,7 +252,6 @@ fun AuthorAndTimestamp(message: IMMessage) {
 fun UserInput(
     onMessageSent: (String) -> Unit,
     modifier: Modifier = Modifier,
-    resetScroll: () -> Unit = {},
 ) {
     var textState by remember { mutableStateOf(TextFieldValue()) }
 
@@ -274,10 +293,7 @@ fun UserInput(
                 onClick = {
                     if (textState.text.isNotBlank()) {
                         onMessageSent(textState.text)
-                        // Reset text field and close keyboard
-                        textState = TextFieldValue()
-                        // Move scroll to bottom
-                        resetScroll()
+                        textState = TextFieldValue() // empty text field
                     }
                 },
                 colors = buttonColors,
