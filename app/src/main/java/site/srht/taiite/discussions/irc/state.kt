@@ -1,11 +1,16 @@
 package site.srht.taiite.discussions.irc
 
+import android.util.Patterns
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -34,7 +39,26 @@ class IRCUser(var name: IRCPrefix) {
     }
 }
 
+private fun annotateURLs(s: AnnotatedString) = buildAnnotatedString {
+    this.append(s)
+    val urlStyle = SpanStyle(
+        color = Color(0xFF9999FF),
+        textDecoration = TextDecoration.Underline,
+    )
+    val urls = Patterns.WEB_URL.matcher(s.text)
+    while (urls.find()) {
+        val urlStart = urls.start()
+        val urlEnd = urls.end()
+        val urlString = s.text.substring(urlStart, urlEnd)
+        this.addStringAnnotation("URL", urlString, urlStart, urlEnd)
+        this.addStyle(urlStyle, urlStart, urlEnd)
+    }
+}
+
 class IMMessage(val author: String, val date: Date, val content: AnnotatedString) {
+    constructor(author: String, date: Date, rawContent: String)
+            : this(author, date, annotateURLs(ircFormat(rawContent)))
+
     fun localDateTime(): LocalDateTime =
         this.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
 
@@ -46,7 +70,7 @@ class IMMessage(val author: String, val date: Date, val content: AnnotatedString
             if (msg.command != "PRIVMSG" || msg.prefix == null || msg.params.size < 2) {
                 return null
             }
-            return IMMessage(msg.prefix.name, msg.dateOrNow(), ircFormat(msg.params[1]))
+            return IMMessage(msg.prefix.name, msg.dateOrNow(), msg.params[1])
         }
     }
 }

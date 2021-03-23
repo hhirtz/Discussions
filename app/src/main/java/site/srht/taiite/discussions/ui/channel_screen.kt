@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -18,7 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -36,7 +39,7 @@ import java.time.format.FormatStyle
 @Composable
 fun ChannelScreen(
     channel: IRCChannel,
-    onMessageSent: (String) -> Unit
+    onMessageSent: (String) -> Unit,
 ) {
     val messageListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -215,11 +218,17 @@ fun Message(
         if (isFirstMessageByAuthor) {
             AuthorAndTimestamp(message)
         }
-        Text(
+        val uriHandler = LocalUriHandler.current
+        ClickableText(
             text = message.content,
-            style = MaterialTheme.typography.body1.copy(
-                color = LocalContentColor.current
-            ),
+            // Need to set `style`, otherwise the text doesn't render white on dark theme.
+            style = TextStyle(color = LocalContentColor.current),
+            onClick = { offset ->
+                val annotation = message.content
+                    .getStringAnnotations(tag = "URL", start = offset, end = offset)
+                    .firstOrNull() ?: return@ClickableText
+                uriHandler.openUri(annotation.item)
+            },
             modifier = Modifier.padding(start = 4.dp, end = 4.dp),
         )
     }
