@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -262,6 +263,12 @@ fun UserInput(
     modifier: Modifier = Modifier,
 ) {
     var textState by remember { mutableStateOf(TextFieldValue()) }
+    val sendMessage = {
+        if (textState.text.isNotBlank()) {
+            onMessageSent(textState.text)
+            textState = TextFieldValue() // empty text field
+        }
+    }
 
     Column(modifier) {
         Divider()
@@ -271,6 +278,7 @@ fun UserInput(
             UserInputText(
                 textFieldValue = textState,
                 onTextChanged = { textState = it },
+                onKeyboardDone = sendMessage,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 48.dp, max = 144.dp)
@@ -298,12 +306,7 @@ fun UserInput(
                     .height(36.dp)
                     .align(Alignment.CenterVertically),
                 enabled = textState.text.isNotBlank(),
-                onClick = {
-                    if (textState.text.isNotBlank()) {
-                        onMessageSent(textState.text)
-                        textState = TextFieldValue() // empty text field
-                    }
-                },
+                onClick = sendMessage,
                 colors = buttonColors,
                 border = border,
                 // TODO: Workaround for https://issuetracker.google.com/158830170
@@ -323,6 +326,7 @@ private fun UserInputText(
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     onTextChanged: (TextFieldValue) -> Unit,
+    onKeyboardDone: () -> Unit,
     textFieldValue: TextFieldValue,
 ) {
     Box(
@@ -339,6 +343,7 @@ private fun UserInputText(
                 keyboardType = keyboardType,
                 imeAction = ImeAction.Send,
             ),
+            keyboardActions = KeyboardActions(onSend = { onKeyboardDone() }),
             cursorBrush = SolidColor(LocalContentColor.current),
             textStyle = LocalTextStyle.current.copy(color = LocalContentColor.current)
         )
