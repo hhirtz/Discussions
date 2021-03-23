@@ -21,7 +21,7 @@ class IRCApplication : Application() {
             this.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val ircServiceChannel = NotificationChannel(
             IRC_SERVICE_CHANNEL,
-            "Connection status",
+            "Connected status (you may disable this)",
             NotificationManager.IMPORTANCE_LOW
         )
         notificationManager.createNotificationChannel(ircServiceChannel)

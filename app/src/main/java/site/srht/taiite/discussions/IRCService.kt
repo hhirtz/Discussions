@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -49,17 +50,24 @@ class IRCService : Service() {
         }
         val pendingIntent: PendingIntent =
             Intent(this, IRCActivity::class.java).let { notificationIntent ->
-                PendingIntent.getActivity(this, 0, notificationIntent, 0)
+                var flag = PendingIntent.FLAG_UPDATE_CURRENT
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    flag = flag or PendingIntent.FLAG_IMMUTABLE
+                }
+                PendingIntent.getActivity(this, 0, notificationIntent, flag)
             }
-        // TODO fix notification not showing correctly.
         val notification = NotificationCompat.Builder(this, IRC_SERVICE_CHANNEL)
-            .setContentTitle("Discussions is running")
-            .setContentText("You may silence this notification with a long press")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Discussions is connected")
+            .setContentText("You may turn off this notification with a long press.")
             .setContentIntent(pendingIntent)
+            .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .build()
-        this.startForeground(1, notification)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            // Hide the notification (not allowed on Oreo and higher).
+            notification.priority = NotificationCompat.PRIORITY_MIN
+        }
+        this.startForeground(1, notification.build())
         CoroutineScope(Dispatchers.Main).launch {
             val service = this@IRCService
             service.stayConnected(service.preferences.clientParams)
