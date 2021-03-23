@@ -1,5 +1,12 @@
 package site.srht.taiite.discussions.irc
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.core.text.isDigitsOnly
 import java.text.SimpleDateFormat
 import java.util.*
@@ -314,3 +321,237 @@ data class IRCMember(val powerLevel: String, val name: IRCPrefix) {
         }
     }
 }
+
+fun ircFormat(raw: String): AnnotatedString {
+    val formatted = AnnotatedString.Builder(capacity = raw.length)
+
+    // Return true iff the given style is starting.
+    val addStyle: (OptInt, SpanStyle) -> Boolean = { start, style ->
+        start.value?.let { formatted.addStyle(style, it, formatted.length) }
+        val res = start.value == null
+        start.value = null
+        res
+    }
+
+    // Every time a formatting code is encountered:
+    // For the matching formatting style, the position of the last encountered code (if any) is used
+    // to call `addStyle`, which will call `Annotated.addStyle` from said last position to the end
+    // of the annotated string.
+    val boldStart = OptInt()
+    val addBold = { addStyle(boldStart, SpanStyle(fontWeight = FontWeight.Bold)) }
+
+    var color = ColorCode(0, Color.Unspecified, Color.Unspecified)
+    val colorStart = OptInt()
+    val addColor = { /* TODO: need to add color depending on user theme */ }
+
+    val monospaceStart = OptInt()
+    val addMonospace =
+        { addStyle(monospaceStart, SpanStyle(fontFamily = FontFamily.Monospace)) }
+
+    val italicStart = OptInt()
+    val addItalic = { addStyle(italicStart, SpanStyle(fontStyle = FontStyle.Italic)) }
+
+    val strikethroughStart = OptInt()
+    val addStrikethrough =
+        { addStyle(strikethroughStart, SpanStyle(textDecoration = TextDecoration.LineThrough)) }
+
+    val underlineStart = OptInt()
+    val addUnderline =
+        { addStyle(underlineStart, SpanStyle(textDecoration = TextDecoration.Underline)) }
+
+    val resetFormatting: () -> Unit = {
+        addBold()
+        addColor()
+        addMonospace()
+        addItalic()
+        addStrikethrough()
+        addUnderline()
+    }
+
+    var i = 0
+    while (i < raw.length) {
+        when (raw[i]) {
+            '\u0002' -> if (addBold()) boldStart.value = formatted.length
+            '\u0003' -> { // ansi color code
+                addColor()
+                val code = ColorCodeTokenizer(raw.substring(i + 1)).tokenize()
+                i += code.size
+                if (code.fgColor != Color.Unspecified && code.bgColor != Color.Unspecified) {
+                    color = code
+                    colorStart.value = formatted.length
+                }
+            }
+            '\u0004' -> { // hex color code
+                // unimplemented
+            }
+            '\u000F' -> resetFormatting()
+            '\u0011' -> if (addMonospace()) monospaceStart.value = formatted.length
+            '\u0016' -> { // reverse colors
+                addColor()
+                color = ColorCode(size = 0, fgColor = color.bgColor, bgColor = color.fgColor)
+                colorStart.value = formatted.length
+            }
+            '\u001D' -> if (addItalic()) italicStart.value = formatted.length
+            '\u001E' -> if (addStrikethrough()) strikethroughStart.value = formatted.length
+            '\u001F' -> if (addUnderline()) underlineStart.value = formatted.length
+            else -> formatted.append(raw[i])
+        }
+        i++
+    }
+
+    resetFormatting()
+    return formatted.toAnnotatedString()
+}
+
+// Mutable, optional integer.
+class OptInt(var value: Int? = null)
+
+private class ColorCode(val size: Int, val fgColor: Color, val bgColor: Color)
+
+private class ColorCodeTokenizer(var s: String) {
+    private var parsed: Int = 0
+
+    private fun colorString(): String = when (this.s.length) {
+        0 -> ""
+        1 -> if (this.s[0].isAsciiDigit()) this.s.substring(0, 1) else ""
+        else -> if (this.s[0].isAsciiDigit()) {
+            if (this.s[1].isAsciiDigit()) {
+                this.s.substring(0, 2)
+            } else {
+                this.s.substring(0, 1)
+            }
+        } else {
+            ""
+        }
+    }
+
+    private fun color(): Color {
+        val ircCode = this.colorString()
+        if (ircCode == "") {
+            return Color.Unspecified
+        }
+        this.s = this.s.substring(ircCode.length)
+        this.parsed += ircCode.length
+        val rgbCode = ircColorToRGB[ircCode.toInt()]
+        return Color(rgbCode)
+    }
+
+    fun tokenize(): ColorCode {
+        val fgColor = this.color()
+        if (this.s == "" || this.s[0] != ',') {
+            return ColorCode(this.parsed, fgColor, Color.Unspecified)
+        }
+        this.s = this.s.substring(1)
+        val bgColor = this.color()
+        if (fgColor == Color.Unspecified && bgColor == Color.Unspecified) {
+            // Don't take the ',' into account (it's a literal ',').
+            return ColorCode(0, Color.Unspecified, Color.Unspecified)
+        }
+        // "+ 1" for the separator ','
+        return ColorCode(this.parsed + 1, fgColor, bgColor)
+    }
+}
+
+fun Char.isAsciiDigit(): Boolean = this in '0'..'9'
+
+private val ircColorToRGB = intArrayOf( // cc delthas ^^
+    0xffffff,
+    0x000000,
+    0x00007f,
+    0x009300,
+    0xff0000,
+    0x7f0000,
+    0x9c009c,
+    0xfc7f00,
+    0xffff00,
+    0x00fc00,
+    0x009393,
+    0x00ffff,
+    0x0000fc,
+    0xff00ff,
+    0x7f7f7f,
+    0x2d2d2d,
+    0x470000,
+    0x472100,
+    0x474700,
+    0x324700,
+    0x004700,
+    0x00472c,
+    0x004747,
+    0x002747,
+    0x000047,
+    0x2e0047,
+    0x470047,
+    0x47002a,
+    0x740000,
+    0x743a00,
+    0x747400,
+    0x517400,
+    0x007400,
+    0x007449,
+    0x007474,
+    0x004074,
+    0x000074,
+    0x4b0074,
+    0x740074,
+    0x740045,
+    0xb50000,
+    0xb56300,
+    0xb5b500,
+    0x7db500,
+    0x00b500,
+    0x00b571,
+    0x00b5b5,
+    0x0063b5,
+    0x0000b5,
+    0x7500b5,
+    0xb500b5,
+    0xb5006b,
+    0xff0000,
+    0xff8c00,
+    0xffff00,
+    0xb2ff00,
+    0x00ff00,
+    0x00ffa0,
+    0x00ffff,
+    0x008cff,
+    0x0000ff,
+    0xa500ff,
+    0xff00ff,
+    0xff0098,
+    0xff5959,
+    0xffb459,
+    0xffff71,
+    0xcfff60,
+    0x6fff6f,
+    0x65ffc9,
+    0x6dffff,
+    0x59b4ff,
+    0x5959ff,
+    0xc459ff,
+    0xff66ff,
+    0xff59bc,
+    0xff9c9c,
+    0xffd39c,
+    0xffff9c,
+    0xe2ff9c,
+    0x9cff9c,
+    0x9cffdb,
+    0x9cffff,
+    0x9cd3ff,
+    0x9c9cff,
+    0xdc9cff,
+    0xff9cff,
+    0xff94d3,
+    0x000000,
+    0x131313,
+    0x282828,
+    0x363636,
+    0x4d4d4d,
+    0x656565,
+    0x818181,
+    0x9f9f9f,
+    0xbcbcbc,
+    0xe2e2e2,
+    0xffffff
+)

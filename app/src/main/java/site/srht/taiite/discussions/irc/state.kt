@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -33,7 +34,7 @@ class IRCUser(var name: IRCPrefix) {
     }
 }
 
-class IMMessage(val author: String, val date: Date, val content: String) {
+class IMMessage(val author: String, val date: Date, val content: AnnotatedString) {
     fun localDateTime(): LocalDateTime =
         this.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
 
@@ -45,7 +46,7 @@ class IMMessage(val author: String, val date: Date, val content: String) {
             if (msg.command != "PRIVMSG" || msg.prefix == null || msg.params.size < 2) {
                 return null
             }
-            return IMMessage(msg.prefix.name, msg.dateOrNow(), msg.params[1])
+            return IMMessage(msg.prefix.name, msg.dateOrNow(), ircFormat(msg.params[1]))
         }
     }
 }

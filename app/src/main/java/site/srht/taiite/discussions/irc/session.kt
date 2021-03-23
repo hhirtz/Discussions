@@ -394,7 +394,7 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                 val nameCM = this._state.casemap(msg.prefix.name)
                 val channel = this._state.channels[targetCM]
                 if (channel != null) {
-                    channel.messages.add(IMMessage(name, msg.dateOrNow(), msg.params[1]))
+                    channel.messages.add(IMMessage(name, msg.dateOrNow(), ircFormat(msg.params[1])))
                 } else {
                     // TODO
                 }
