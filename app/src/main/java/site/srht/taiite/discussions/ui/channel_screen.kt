@@ -1,6 +1,7 @@
 package site.srht.taiite.discussions.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -18,7 +19,10 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.semantics
@@ -329,13 +333,19 @@ private fun UserInputText(
     onKeyboardDone: () -> Unit,
     textFieldValue: TextFieldValue,
 ) {
+    val textFieldFocus = FocusRequester()
+    val onClick = { textFieldFocus.requestFocus() }
+    val clickModifier = Modifier.pointerInput(onClick) {
+        this.detectTapGestures(onTap = { onClick() })
+    }
     Box(
-        modifier = modifier,
+        modifier = modifier.then(clickModifier),
     ) {
         BasicTextField(
             value = textFieldValue,
             onValueChange = { onTextChanged(it) },
             modifier = Modifier
+                .focusRequester(textFieldFocus)
                 .fillMaxWidth()
                 .padding(start = 16.dp)
                 .align(Alignment.CenterStart),
