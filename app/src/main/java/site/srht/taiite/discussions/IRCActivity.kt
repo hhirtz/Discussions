@@ -89,7 +89,9 @@ class IRCActivity : AppCompatActivity() {
                     } else {
                         ChannelScreen(
                             channel = openedChannel,
-                            onMessageSent = { this.service?.privmsg(screen.name, it) }
+                            typings = ircState.typings(openedChannel.name),
+                            onMessageSent = { this.service?.privmsg(screen.name, it) },
+                            onTyping = { this.service?.typing(screen.name) },
                         )
                     }
                 }

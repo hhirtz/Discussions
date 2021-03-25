@@ -149,9 +149,9 @@ abstract class IRCState internal constructor() {
 
     fun getChannel(name: String): IRCChannel? = this.channels[this.casemap(name)]
 
-    fun typings(target: String): Set<String> {
+    fun typings(target: String): SortedSet<String> {
         val targetCM = this.casemap(target)
-        val names = HashSet<String>()
+        val names = TreeSet<String>()
         synchronized(this.typings) {
             for ((t, name) in this.typings.keys) {
                 if (t == targetCM) {

@@ -11,6 +11,7 @@ import site.srht.taiite.discussions.irc.*
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.*
 
 interface SASLClient {
@@ -67,6 +68,8 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
     private val _state = MutableIRCState(params.nickname, params.username, params.realName)
     val state: IRCState = _state
 
+    private val typingStamps = mutableMapOf<String, LocalDateTime>()
+
     private val _events = Channel<IRCEvent>(64)
     val events: ReceiveChannel<IRCEvent> = _events
 
@@ -110,6 +113,21 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
 
     suspend fun privmsg(target: String, content: String) {
         this.send("PRIVMSG", target, content)
+    }
+
+    suspend fun typing(target: String) {
+        if (!this.state.enabledCapabilities.contains("message-tags")) {
+            return
+        }
+        val targetCM = this.state.casemap(target)
+        val now = LocalDateTime.now()
+        val tooSoon =
+            this.typingStamps[targetCM]?.let { it.until(now, ChronoUnit.SECONDS) < 3 } ?: false
+        if (tooSoon) {
+            return
+        }
+        this.typingStamps[targetCM] = now
+        this.send("@+typing=active", "TAGMSG", target)
     }
 
     // `before` must be in the UTC zone.
@@ -410,6 +428,10 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                 val typingState = msg.tags["+typing"] ?: return
                 val target = this._state.unCasemap(msg.params[0])
                 val name = this._state.unCasemap(msg.prefix!!.name)
+                val nameCM = this._state.casemap(msg.prefix.name)
+                if (nameCM == this._state.nicknameCM) {
+                    return
+                }
                 when (typingState) {
                     "active" -> {
                         this._state.typingActive(target, name)

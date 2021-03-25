@@ -111,6 +111,12 @@ class IRCService : Service() {
             this@IRCService.s?.join(channel)
         }
     }
+
+    fun typing(target: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            this@IRCService.s?.typing(target)
+        }
+    }
 }
 
 suspend fun connect(params: IRCClientParams): IRCSession {

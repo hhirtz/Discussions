@@ -45,7 +45,9 @@ import java.util.*
 @Composable
 fun ChannelScreen(
     channel: IRCChannel,
+    typings: SortedSet<String>,
     onMessageSent: (String) -> Unit,
+    onTyping: () -> Unit,
 ) {
     val messageListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -83,11 +85,13 @@ fun ChannelScreen(
                     }
                 }
             }
+            TypingNotifications(typings)
             UserInput(
                 onMessageSent = {
                     onMessageSent(it)
                     scrollToBottom()
                 },
+                onTyping = onTyping,
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsWithImePadding(),
@@ -269,8 +273,35 @@ fun AuthorAndTimestamp(message: IMMessage) {
 }
 
 @Composable
+fun TypingNotifications(typings: SortedSet<String>) {
+    val text = when (typings.size) {
+        0 -> ""
+        1 -> "${typings.first()} is typing…"
+        2, 3 -> "${
+            typings.joinToString(
+                limit = typings.size - 1,
+                truncated = ""
+            )
+        } and ${typings.last()} are typing…"
+        else -> "Several people are typing…"
+    }
+    if (text != "") {
+        CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.caption,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
 fun UserInput(
     onMessageSent: (String) -> Unit,
+    onTyping: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var textState by remember { mutableStateOf(TextFieldValue()) }
@@ -288,7 +319,12 @@ fun UserInput(
         ) {
             UserInputText(
                 textFieldValue = textState,
-                onTextChanged = { textState = it },
+                onTextChanged = {
+                    if (it.text.isNotBlank()) {
+                        onTyping()
+                    }
+                    textState = it
+                },
                 onKeyboardDone = sendMessage,
                 modifier = Modifier
                     .weight(1f)
@@ -372,7 +408,7 @@ private fun UserInputText(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .padding(start = 16.dp),
-                text = "Send a message...",
+                text = "Send a message…",
                 style = MaterialTheme.typography.body1.copy(color = disableContentColor)
             )
         }
