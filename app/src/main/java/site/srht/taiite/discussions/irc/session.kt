@@ -112,7 +112,12 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
     }
 
     suspend fun privmsg(target: String, content: String) {
-        this.send("PRIVMSG", target, content)
+        for (line in content.splitToSequence('\n')) {
+            if (line.isBlank()) {
+                continue
+            }
+            this.send("PRIVMSG", target, line)
+        }
     }
 
     suspend fun typing(target: String) {
