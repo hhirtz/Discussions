@@ -8,7 +8,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.consumeEach
 import site.srht.taiite.discussions.irc.*
-import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 interface SASLClient {
@@ -110,8 +112,12 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
         this.send("PRIVMSG", target, content)
     }
 
-    private suspend fun requestHistoryBefore(target: String, before: Date) {
-        val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+    // `before` must be in the UTC zone.
+    private suspend fun requestHistoryBefore(target: String, before: LocalDateTime) {
+        if (!this.state.enabledCapabilities.contains("draft/chathistory")) {
+            return
+        }
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         val criterion = formatter.format(before)
         this.send("CHATHISTORY", "BEFORE", target, "timestamp=$criterion", "100")
     }
@@ -360,7 +366,7 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                 }
                 channel.complete = true
                 this._state.channels[channelCM] = channel
-                this.requestHistoryBefore(channel.name, Date())
+                this.requestHistoryBefore(channel.name, LocalDateTime.now(ZoneOffset.UTC))
             }
             RPL_TOPIC -> {
                 val channelCM = this._state.casemap(msg.params[1])
@@ -371,7 +377,8 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                 val channelCM = this._state.casemap(msg.params[1])
                 val channel = this._state.channels[channelCM] ?: return
                 channel.topicWho = IRCPrefix.tokenize(msg.params[2])
-                channel.topicTime = Date(msg.params[3].toLong())
+                channel.topicTime =
+                    LocalDateTime.ofEpochSecond(msg.params[3].toLong(), 0, ZoneOffset.UTC)
             }
             RPL_NOTOPIC -> {
                 val channelCM = this._state.casemap(msg.params[1])

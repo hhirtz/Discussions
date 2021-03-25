@@ -8,7 +8,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.core.text.isDigitsOnly
-import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 fun casemapASCII(name: String): String {
@@ -159,13 +161,13 @@ data class IRCMessage(
             3 <= this.params.size && this.command.length == 3 && this.command.isDigitsOnly()
     }
 
-    fun date(): Date? =
+    fun date(): LocalDateTime? =
         this.tags["time"]?.let {
-            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-                .parse(it)
+            val parsed = DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(it)
+            LocalDateTime.from(parsed)
         }
 
-    fun dateOrNow(): Date = this.date() ?: Date()
+    fun dateOrNow(): LocalDateTime = this.date() ?: LocalDateTime.now(ZoneOffset.UTC)
 
     override fun toString(): String {
         val sb = StringBuilder()

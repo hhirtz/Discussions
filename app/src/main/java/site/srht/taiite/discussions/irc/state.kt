@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.*
 
 class IRCUser(var name: IRCPrefix) {
@@ -55,15 +56,12 @@ private fun annotateURLs(s: AnnotatedString) = buildAnnotatedString {
     }
 }
 
-class IMMessage(val author: String, val date: Date, val content: AnnotatedString) {
-    constructor(author: String, date: Date, rawContent: String)
+class IMMessage(val author: String, date: LocalDateTime, val content: AnnotatedString) {
+    constructor(author: String, date: LocalDateTime, rawContent: String)
             : this(author, date, annotateURLs(ircFormat(rawContent)))
 
-    fun localDateTime(): LocalDateTime =
-        this.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
-
-    fun localDate(): LocalDate =
-        this.localDateTime().toLocalDate()
+    val localDateTime: LocalDateTime = date.atZone(ZoneId.systemDefault()).toLocalDateTime()
+    val localDate: LocalDate = localDateTime.toLocalDate()
 
     companion object {
         fun fromIRCMessage(msg: IRCMessage): IMMessage? {
@@ -79,7 +77,7 @@ class IRCChannel(var name: String) {
     var members = mutableStateMapOf<IRCUser, String>()
     var topic = mutableStateOf("")
     var topicWho: IRCPrefix? = null
-    var topicTime: Date? = null
+    var topicTime: LocalDateTime? = null
     var secret = false
     var complete = false
     var messages = mutableStateListOf<IMMessage>()
@@ -107,8 +105,8 @@ class IRCChannel(var name: String) {
         result = 31 * result + (topicTime?.hashCode() ?: 0)
         result = 31 * result + secret.hashCode()
         result = 31 * result + complete.hashCode()
-        result =
-            31 * result + messages.size.hashCode() // only check for size, see "equals()" comment
+        // only check for size, see "equals()" comment
+        result = 31 * result + messages.size.hashCode()
         return result
     }
 }
@@ -122,7 +120,7 @@ abstract class IRCState internal constructor() {
     abstract val account: State<String>
     abstract val users: SnapshotStateMap<String, IRCUser>
     abstract val channels: SnapshotStateMap<String, IRCChannel>
-    abstract val typings: SnapshotStateMap<Pair<String, String>, Date>
+    abstract val typings: SnapshotStateMap<Pair<String, String>, LocalDateTime>
     abstract val availableCapabilities: Map<String, String>
     abstract val enabledCapabilities: Set<String>
     abstract val featureCASEMAPPING: String
@@ -217,7 +215,7 @@ internal class MutableIRCState(
     override var account = mutableStateOf("")
     override var users = mutableStateMapOf<String, IRCUser>()
     override var channels = mutableStateMapOf<String, IRCChannel>()
-    override var typings = mutableStateMapOf<Pair<String, String>, Date>()
+    override var typings = mutableStateMapOf<Pair<String, String>, LocalDateTime>()
     override var availableCapabilities = mutableMapOf<String, String>()
     override var enabledCapabilities = mutableSetOf<String>()
     override var featureCASEMAPPING = "rfc1459"
@@ -235,7 +233,7 @@ internal class MutableIRCState(
 
     fun typingActive(target: String, name: String) {
         val typing = Pair(target, name)
-        val now = Date()
+        val now = LocalDateTime.now(ZoneOffset.UTC)
         synchronized(this.typings) {
             this.typings[typing] = now
         }

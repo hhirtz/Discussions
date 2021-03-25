@@ -37,9 +37,10 @@ import kotlinx.coroutines.launch
 import site.srht.taiite.discussions.irc.IMMessage
 import site.srht.taiite.discussions.irc.IRCChannel
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.temporal.WeekFields
+import java.util.*
 
 @Composable
 fun ChannelScreen(
@@ -148,30 +149,36 @@ fun Messages(
     ) {
         itemsIndexed(messagesR) { index, message ->
             val prevMsg = messagesR.getOrNull(index + 1)
-            val isNewDay = prevMsg?.localDate() != message.localDate()
+            val isNewDay = prevMsg?.localDate != message.localDate
             val isFirstMessageByAuthor = prevMsg?.author != message.author || isNewDay
             Message(message, isFirstMessageByAuthor)
             if (isNewDay) {
                 DayHeader(
-                    userFriendlyDate(message.localDateTime())
+                    userFriendlyDate(message.localDate)
                 )
             }
         }
     }
 }
 
-fun userFriendlyDate(date: LocalDateTime): String {
+fun userFriendlyDate(then: LocalDate): String {
     val now = LocalDate.now()
-    val then = date.toLocalDate()
     if (then == now) {
         return "Today"
     }
     if (then.plusDays(1) == now) {
         return "Yesterday"
     }
-    val elapsed = then.until(now)
-    if (elapsed.days < 8) {
-        return "${elapsed.days} days ago"
+    if (then.year == now.year) {
+        val week = WeekFields.of(Locale.getDefault())
+        val woyThen = then.get(week.weekOfYear())
+        val woyNow = now.get(week.weekOfYear())
+        if (woyThen == woyNow) {
+            return "This ${then.dayOfWeek.toString().toLowerCase(Locale.getDefault())}"
+        }
+        if (woyThen + 1 == woyNow) {
+            return "Last ${then.dayOfWeek.toString().toLowerCase(Locale.getDefault())}"
+        }
     }
     val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)
     return then.format(formatter)
@@ -253,7 +260,7 @@ fun AuthorAndTimestamp(message: IMMessage) {
         Spacer(modifier = Modifier.width(8.dp))
         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
             Text(
-                text = message.localDateTime().format(timeFormatter),
+                text = message.localDateTime.format(timeFormatter),
                 style = MaterialTheme.typography.caption,
                 modifier = Modifier.alignBy(LastBaseline)
             )
