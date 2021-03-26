@@ -27,7 +27,9 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -35,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.accompanist.insets.navigationBarsWithImePadding
 import kotlinx.coroutines.launch
+import site.srht.taiite.discussions.R
 import site.srht.taiite.discussions.irc.IMMessage
 import site.srht.taiite.discussions.irc.IRCChannel
 import java.time.LocalDate
@@ -44,6 +47,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.WeekFields
 import java.util.*
+import kotlin.math.abs
 
 @Composable
 fun ChannelScreen(
@@ -274,11 +278,30 @@ fun AuthorAndTimestamp(
     message: IMMessage,
     modifier: Modifier = Modifier,
 ) {
+    val authorColor = remember(message.author) {
+        var hash = 0
+        for (c in message.author) {
+            hash = (hash shl 5) - hash + c.toInt()
+        }
+        when (abs(hash) % 8) {
+            0 -> R.color.username_1
+            1 -> R.color.username_2
+            2 -> R.color.username_3
+            3 -> R.color.username_4
+            4 -> R.color.username_5
+            5 -> R.color.username_6
+            6 -> R.color.username_7
+            else -> R.color.username_8
+        }
+    }
     val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
     Row(modifier = modifier.fillMaxWidth()) {
         Text(
             text = message.author,
-            style = MaterialTheme.typography.subtitle1,
+            style = MaterialTheme.typography.subtitle1.copy(
+                color = colorResource(authorColor),
+                fontWeight = FontWeight.Bold,
+            ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.alignBy(LastBaseline),

@@ -7,4 +7,13 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="username_1">#368bd6</color>
+    <color name="username_2">#ac3ba8</color>
+    <color name="username_3">#03B381</color>
+    <color name="username_4">#e64f7a</color>
+    <color name="username_5">#ff812d</color>
+    <color name="username_6">#2dc2c5</color>
+    <color name="username_7">#5c56f5</color>
+    <color name="username_8">#74d12c</color>
 </resources>
