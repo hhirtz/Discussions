@@ -101,25 +101,25 @@ class IRCService : Service() {
     }
 
     fun privmsg(target: String, content: String) {
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             this@IRCService.s?.privmsg(target, content)
         }
     }
 
     fun join(channel: String) {
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             this@IRCService.s?.join(channel)
         }
     }
 
     fun part(channel: String, reason: String = "") {
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             this@IRCService.s?.part(channel, reason)
         }
     }
 
     fun typing(target: String) {
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             this@IRCService.s?.typing(target)
         }
     }
