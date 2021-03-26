@@ -58,7 +58,7 @@ class IRCActivity : AppCompatActivity() {
             val onboarded = this.preferences.onboarded.collectAsState(initial = null).value
             IRCTheme {
                 if (onboarded == null) {
-                    LoadingScreen("Loading settings...")
+                    LoadingScreen("Loading settings…")
                 } else if (!onboarded) {
                     OnboardingScreen(
                         onboard = { serverAddress, serverPort, nickname, password ->
