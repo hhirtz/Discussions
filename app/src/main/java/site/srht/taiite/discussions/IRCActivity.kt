@@ -79,6 +79,16 @@ class IRCActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        this.service?.idle()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        this.service?.resume()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         this.service?.model = null

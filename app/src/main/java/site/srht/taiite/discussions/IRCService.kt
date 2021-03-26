@@ -32,13 +32,19 @@ class IRCServiceBinder(val service: IRCService) : Binder()
 class IRCService : Service() {
     internal var model: IRCViewModel? = null
         set(model) {
+            if (model == null) {
+                this.idle()
+            } else {
+                this.resume()
+            }
             this.s?.let {
                 model?.ircState?.value = it.state
             }
             field = model
         }
     private var s: IRCSession? = null
-    private var started = AtomicBoolean(false)
+    private val started = AtomicBoolean(false)
+    private val idle = AtomicBoolean(false)
     private val preferences by lazy { PreferencesRepository(this.applicationContext) }
 
     override fun onBind(intent: Intent?): IBinder {
@@ -129,6 +135,22 @@ class IRCService : Service() {
     fun requestHistoryBefore(target: String, before: LocalDateTime) {
         CoroutineScope(Dispatchers.Main).launch {
             this@IRCService.s?.requestHistoryBefore(target, before)
+        }
+    }
+
+    fun idle() {
+        if (!this.idle.getAndSet(true)) {
+            CoroutineScope(Dispatchers.Main).launch {
+                this@IRCService.s?.idle()
+            }
+        }
+    }
+
+    fun resume() {
+        if (this.idle.getAndSet(false)) {
+            CoroutineScope(Dispatchers.Main).launch {
+                this@IRCService.s?.resume()
+            }
         }
     }
 }

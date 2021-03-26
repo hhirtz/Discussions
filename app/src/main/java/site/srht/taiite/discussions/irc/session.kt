@@ -156,6 +156,16 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
         this.send("CHATHISTORY", "BEFORE", target, "timestamp=$criterion", "100")
     }
 
+    suspend fun idle() {
+        if (this.state.featureIDLE) {
+            this.send("IDLE")
+        }
+    }
+
+    suspend fun resume() {
+        this.send("PING", "resume")
+    }
+
     private suspend fun handleMessage(msg: IRCMessage) {
         if (this._state.registered.value) {
             this.handleMessageRegistered(msg)
@@ -263,6 +273,7 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                         "CHANTYPES" -> if (value != "") {
                             this._state.featureCHANTYPES = value.toCharArray()
                         }
+                        "IDLE" -> this._state.featureIDLE = true
                         "PREFIX" -> {
                             if (value == "") {
                                 this._state.featurePREFIX = charArrayOf() to charArrayOf()
