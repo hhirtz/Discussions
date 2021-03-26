@@ -112,6 +112,12 @@ class IRCService : Service() {
         }
     }
 
+    fun part(channel: String, reason: String = "") {
+        CoroutineScope(Dispatchers.IO).launch {
+            this@IRCService.s?.part(channel, reason)
+        }
+    }
+
     fun typing(target: String) {
         CoroutineScope(Dispatchers.IO).launch {
             this@IRCService.s?.typing(target)

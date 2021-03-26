@@ -7,6 +7,7 @@ import android.content.ServiceConnection
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -55,7 +56,6 @@ class IRCActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(this.window, false)
         this.setContent {
             val onboarded = this.preferences.onboarded.collectAsState(initial = null).value
-            val ircState = this.model.ircState.observeAsState().value
             IRCTheme {
                 if (onboarded == null) {
                     LoadingScreen("Loading settings...")
@@ -72,28 +72,8 @@ class IRCActivity : AppCompatActivity() {
                             }
                         },
                     )
-                } else if (ircState == null || !ircState.registered.value) {
-                    LoadingScreen("Connecting...")
                 } else {
-                    val screen =
-                        this.model.currentScreen.observeAsState(initial = Screen.Home).value
-                    val openedChannel =
-                        (screen as? Screen.Channel)?.name?.let { ircState.getChannel(it) }
-                    if (openedChannel == null) {
-                        HomeScreen(
-                            nickname = ircState.nickname.value,
-                            channelList = ircState.channels.toSortedMap().values.toList(),
-                            onChannelClicked = { this.model.openChannel(it) },
-                            onChannelJoined = { this.service?.join(it) },
-                        )
-                    } else {
-                        ChannelScreen(
-                            channel = openedChannel,
-                            typings = ircState.typings(openedChannel.name),
-                            onMessageSent = { this.service?.privmsg(screen.name, it) },
-                            onTyping = { this.service?.typing(screen.name) },
-                        )
-                    }
+                    App(this.model, this.service)
                 }
             }
         }
@@ -103,11 +83,53 @@ class IRCActivity : AppCompatActivity() {
         super.onDestroy()
         this.service?.model = null
     }
+}
 
-    override fun onBackPressed() {
-        when (this.model.currentScreen.value) {
-            is Screen.Home -> super.onBackPressed()
-            is Screen.Channel -> this.model.closeChannel()
+@Composable
+fun App(
+    model: IRCViewModel,
+    service: IRCService?,
+) {
+    val ircState = model.ircState.observeAsState().value
+
+    if (ircState == null || !ircState.registered.value) {
+        LoadingScreen(reason = "Connecting…")
+        return
+    }
+
+    when (val screen = model.currentScreen.observeAsState(initial = Screen.Home).value) {
+        Screen.Home -> {
+            HomeScreen(
+                nickname = ircState.nickname.value,
+                channelList = ircState.channels.toSortedMap().values.toList(),
+                onChannelClicked = { model.openChannel(it) },
+                onChannelJoined = { service?.join(it) },
+            )
+        }
+        is Screen.Channel -> {
+            ChannelScreen(
+                channel = ircState.getChannel(screen.name)!!,
+                typings = ircState.typings(screen.name),
+                onMessageSent = { service?.privmsg(screen.name, it) },
+                onTyping = { service?.typing(screen.name) },
+                goBack = { model.closeChannel() },
+                goToSettings = { model.goToChannelSettings() },
+            )
+            BackHandler(enabled = true) { model.closeChannel() }
+        }
+        is Screen.ChannelSettings -> {
+            ChannelSettingsScreen(
+                channel = ircState.getChannel(screen.name)!!,
+                part = {
+                    model.closeChannel()
+                    service?.part(screen.name)
+                },
+                detach = {
+                    model.closeChannel()
+                    service?.part(screen.name, "detach")
+                },
+            )
+            BackHandler(enabled = true) { model.exitChannelSettings() }
         }
     }
 }

@@ -1,6 +1,7 @@
 package site.srht.taiite.discussions.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Search
@@ -23,7 +25,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -48,12 +50,14 @@ fun ChannelScreen(
     typings: SortedSet<String>,
     onMessageSent: (String) -> Unit,
     onTyping: () -> Unit,
+    goBack: () -> Unit,
+    goToSettings: () -> Unit,
 ) {
     val messageListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val scrollToBottom: () -> Unit = { scope.launch { messageListState.scrollToItem(0) } }
     Scaffold(
-        topBar = { ChannelTopBar(channel) },
+        topBar = { ChannelTopBar(channel, goBack, goToSettings) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -101,12 +105,14 @@ fun ChannelScreen(
 }
 
 @Composable
-fun ChannelTopBar(channel: IRCChannel) {
+fun ChannelTopBar(
+    channel: IRCChannel,
+    goBack: () -> Unit,
+    goToSettings: () -> Unit,
+) {
     InsetAwareTopAppBar(
         title = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            Column {
                 Text(channel.name)
                 if (channel.topic.value.isNotBlank()) {
                     CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
@@ -120,6 +126,16 @@ fun ChannelTopBar(channel: IRCChannel) {
                 }
             }
         },
+        navigationIcon = {
+            Icon(
+                imageVector = Icons.Outlined.ArrowBack,
+                contentDescription = "Go back",
+                modifier = Modifier
+                    .clickable(onClick = goBack)
+                    .padding(horizontal = 12.dp, vertical = 16.dp)
+                    .height(24.dp),
+            )
+        },
         actions = {
             Icon(
                 imageVector = Icons.Outlined.Search,
@@ -130,10 +146,11 @@ fun ChannelTopBar(channel: IRCChannel) {
             )
             Icon(
                 imageVector = Icons.Outlined.Info,
-                contentDescription = "Channel info",
+                contentDescription = "Channel settings",
                 modifier = Modifier
+                    .clickable(onClick = goToSettings)
                     .padding(horizontal = 12.dp, vertical = 16.dp)
-                    .height(24.dp), // TODO show unimplemented dialog
+                    .height(24.dp),
             )
         },
     )
@@ -256,17 +273,15 @@ fun AuthorAndTimestamp(message: IMMessage) {
     Row(modifier = Modifier.semantics(mergeDescendants = true) {}) {
         Text(
             text = message.author,
-            modifier = Modifier
-                .alignBy(LastBaseline)
-                .paddingFrom(LastBaseline, after = 4.dp), // Space to 1st bubble
-            style = MaterialTheme.typography.subtitle1
+            modifier = Modifier.alignBy(FirstBaseline),
+            style = MaterialTheme.typography.subtitle1,
         )
         Spacer(modifier = Modifier.width(8.dp))
         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
             Text(
                 text = message.localDateTime.format(timeFormatter),
                 style = MaterialTheme.typography.caption,
-                modifier = Modifier.alignBy(LastBaseline)
+                modifier = Modifier.alignBy(FirstBaseline),
             )
         }
     }

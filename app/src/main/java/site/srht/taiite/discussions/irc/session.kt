@@ -111,6 +111,10 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
         this.send("JOIN", "$prefix$channel")
     }
 
+    suspend fun part(channel: String, reason: String = "") {
+        this.send("PART", channel, reason)
+    }
+
     suspend fun privmsg(target: String, content: String) {
         for (line in content.splitToSequence('\n')) {
             if (line.isBlank()) {

@@ -7,11 +7,11 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import site.srht.taiite.discussions.irc.IRCSessionParams
 import site.srht.taiite.discussions.irc.IRCState
 import site.srht.taiite.discussions.irc.SASLPlain
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 // Preferences
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -69,6 +69,7 @@ class PreferencesRepository(context: Context) {
 sealed class Screen {
     object Home : Screen()
     class Channel(val name: String) : Screen()
+    class ChannelSettings(val name: String) : Screen()
 }
 
 class IRCViewModel : ViewModel() {
@@ -88,5 +89,21 @@ class IRCViewModel : ViewModel() {
 
     fun closeChannel() {
         this._currentScreen.value = Screen.Home
+    }
+
+    fun goToChannelSettings() {
+        val screen = this._currentScreen.value
+        if (screen !is Screen.Channel) {
+            return
+        }
+        this._currentScreen.value = Screen.ChannelSettings(screen.name)
+    }
+
+    fun exitChannelSettings() {
+        val screen = this._currentScreen.value
+        if (screen !is Screen.ChannelSettings) {
+            return
+        }
+        this._currentScreen.value = Screen.Channel(screen.name)
     }
 }
