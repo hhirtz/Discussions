@@ -72,6 +72,7 @@ fun ChannelScreen(
                 Messages(
                     messages = channel.messages,
                     listState = messageListState,
+                    modifier = Modifier.fillMaxSize(),
                 )
                 val firstVisibleIndex =
                     messageListState.layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: 0
@@ -162,14 +163,15 @@ fun Messages(
     listState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
-    val messagesR = messages.asReversed()
+    val messagesReversed = messages.asReversed()
     LazyColumn(
         state = listState,
         modifier = modifier,
         reverseLayout = true,
+        verticalArrangement = Arrangement.Bottom,
     ) {
-        itemsIndexed(messagesR) { index, message ->
-            val prevMsg = messagesR.getOrNull(index + 1)
+        itemsIndexed(messagesReversed) { index, message ->
+            val prevMsg = messagesReversed.getOrNull(index + 1)
             val isNewDay = prevMsg?.localDate != message.localDate
             val isFirstMessageByAuthor = prevMsg?.author != message.author || isNewDay
             Message(message, isFirstMessageByAuthor)
