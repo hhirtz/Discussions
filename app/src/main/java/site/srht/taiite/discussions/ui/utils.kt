@@ -47,15 +47,17 @@ fun InsetAwareTopAppBar(
 
 @Composable
 fun LoadingScreen(reason: String) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        CircularProgressIndicator(modifier = Modifier.wrapContentWidth(Alignment.CenterHorizontally))
-        Text(
-            text = reason,
-            textAlign = TextAlign.Center,
-        )
+    Surface {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator(modifier = Modifier.wrapContentWidth(Alignment.CenterHorizontally))
+            Text(
+                text = reason,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
