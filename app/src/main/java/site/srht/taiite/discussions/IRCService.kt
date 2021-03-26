@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.*
 import site.srht.taiite.discussions.irc.IRCSession
 import site.srht.taiite.discussions.irc.IRCSessionParams
 import java.io.IOException
+import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicBoolean
 
 data class IRCClientParams(
@@ -121,6 +122,13 @@ class IRCService : Service() {
     fun typing(target: String) {
         CoroutineScope(Dispatchers.Main).launch {
             this@IRCService.s?.typing(target)
+        }
+    }
+
+    // `before` must be in the UTC zone.
+    fun requestHistoryBefore(target: String, before: LocalDateTime) {
+        CoroutineScope(Dispatchers.Main).launch {
+            this@IRCService.s?.requestHistoryBefore(target, before)
         }
     }
 }

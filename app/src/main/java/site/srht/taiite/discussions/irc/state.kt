@@ -56,7 +56,7 @@ private fun annotateURLs(s: AnnotatedString) = buildAnnotatedString {
     }
 }
 
-class IMMessage(val author: String, date: LocalDateTime, val content: AnnotatedString) {
+class IMMessage(val author: String, val date: LocalDateTime, val content: AnnotatedString) {
     constructor(author: String, date: LocalDateTime, rawContent: String)
             : this(author, date, annotateURLs(ircFormat(rawContent)))
 
@@ -81,6 +81,8 @@ class IRCChannel(var name: String) {
     var secret = false
     var complete = false
     var messages = mutableStateListOf<IMMessage>()
+    var hasAllMessages = false
+    var loadingHistory = mutableStateOf(false)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -127,7 +129,7 @@ abstract class IRCState internal constructor() {
     abstract val featureCHANTYPES: CharArray
     abstract val featurePREFIX: Pair<CharArray, CharArray>
 
-    private fun isChannel(name: String): Boolean =
+    fun isChannel(name: String): Boolean =
         name.indexOfAny(this.featureCHANTYPES) == 0
 
     fun casemap(name: String): String = when (this.featureCASEMAPPING) {
@@ -252,8 +254,13 @@ internal class MutableIRCState(
         this.typings.remove(Pair(target, name))
     }
 
-    fun addMessages(target: String, messages: List<IMMessage>) {
+    fun addHistory(target: String, messages: List<IMMessage>) {
         val channel = this.channels[this.casemap(target)] ?: return
-        channel.messages.addAll(0, messages) // TODO add to the correct location
+        if (messages.isEmpty()) {
+            channel.hasAllMessages = true
+        } else {
+            channel.messages.addAll(0, messages)
+        }
+        channel.loadingHistory.value = false
     }
 }

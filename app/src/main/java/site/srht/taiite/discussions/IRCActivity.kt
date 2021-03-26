@@ -111,6 +111,7 @@ fun App(
                 channel = ircState.getChannel(screen.name)!!,
                 typings = ircState.typings(screen.name),
                 onMessageSent = { service?.privmsg(screen.name, it) },
+                loadHistory = { service?.requestHistoryBefore(screen.name, it) },
                 onTyping = { service?.typing(screen.name) },
                 goBack = { model.closeChannel() },
                 goToSettings = { model.goToChannelSettings() },

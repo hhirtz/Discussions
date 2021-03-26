@@ -140,9 +140,16 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
     }
 
     // `before` must be in the UTC zone.
-    private suspend fun requestHistoryBefore(target: String, before: LocalDateTime) {
+    suspend fun requestHistoryBefore(target: String, before: LocalDateTime) {
         if (!this.state.enabledCapabilities.contains("draft/chathistory")) {
             return
+        }
+        val channel = this.state.getChannel(target)
+        if (channel != null) {
+            if (channel.loadingHistory.value) {
+                return
+            }
+            channel.loadingHistory.value = true
         }
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         val criterion = formatter.format(before)
@@ -461,8 +468,8 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                     }
                 } else {
                     this.chathistoryBatches[id]?.let {
-                        this._state.addMessages(it.target, it.messages)
                         this.chathistoryBatches.remove(id)
+                        this._state.addHistory(it.target, it.messages)
                     }
                 }
             }

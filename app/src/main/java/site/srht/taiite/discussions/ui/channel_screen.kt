@@ -25,9 +25,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.FirstBaseline
+import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,6 +38,8 @@ import kotlinx.coroutines.launch
 import site.srht.taiite.discussions.irc.IMMessage
 import site.srht.taiite.discussions.irc.IRCChannel
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.WeekFields
@@ -49,6 +50,7 @@ fun ChannelScreen(
     channel: IRCChannel,
     typings: SortedSet<String>,
     onMessageSent: (String) -> Unit,
+    loadHistory: (LocalDateTime) -> Unit,
     onTyping: () -> Unit,
     goBack: () -> Unit,
     goToSettings: () -> Unit,
@@ -56,6 +58,12 @@ fun ChannelScreen(
     val messageListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val scrollToBottom: () -> Unit = { scope.launch { messageListState.scrollToItem(0) } }
+
+    val lastVisibleItemIndex = messageListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+    if (channel.messages.size < lastVisibleItemIndex + 25 && !channel.loadingHistory.value && !channel.hasAllMessages) {
+        loadHistory(channel.messages.firstOrNull()?.date ?: LocalDateTime.now(ZoneOffset.UTC))
+    }
+
     Scaffold(
         topBar = { ChannelTopBar(channel, goBack, goToSettings) },
     ) { innerPadding ->
@@ -71,12 +79,11 @@ fun ChannelScreen(
             ) {
                 Messages(
                     messages = channel.messages,
+                    loadingHistory = channel.loadingHistory.value,
                     listState = messageListState,
                     modifier = Modifier.fillMaxSize(),
                 )
-                val firstVisibleIndex =
-                    messageListState.layoutInfo.visibleItemsInfo.firstOrNull()?.index ?: 0
-                if (firstVisibleIndex != 0) {
+                if (messageListState.firstVisibleItemIndex != 0) {
                     FloatingActionButton(
                         onClick = scrollToBottom,
                         modifier = Modifier
@@ -160,9 +167,11 @@ fun ChannelTopBar(
 @Composable
 fun Messages(
     messages: List<IMMessage>,
+    loadingHistory: Boolean,
     listState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
+    val uriHandler = LocalUriHandler.current
     val messagesReversed = messages.asReversed()
     LazyColumn(
         state = listState,
@@ -170,11 +179,34 @@ fun Messages(
         reverseLayout = true,
         verticalArrangement = Arrangement.Bottom,
     ) {
+        if (loadingHistory) {
+            item {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .wrapContentWidth(Alignment.CenterHorizontally),
+                )
+            }
+        }
         itemsIndexed(messagesReversed) { index, message ->
             val prevMsg = messagesReversed.getOrNull(index + 1)
             val isNewDay = prevMsg?.localDate != message.localDate
             val isFirstMessageByAuthor = prevMsg?.author != message.author || isNewDay
-            Message(message, isFirstMessageByAuthor)
+            ClickableText(
+                text = message.content,
+                // Need to set `style`, otherwise the text doesn't render white on dark theme.
+                style = TextStyle(color = LocalContentColor.current),
+                onClick = { offset ->
+                    val annotation = message.content
+                        .getStringAnnotations(tag = "URL", start = offset, end = offset)
+                        .firstOrNull() ?: return@ClickableText
+                    uriHandler.openUri(annotation.item)
+                },
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            if (isFirstMessageByAuthor) {
+                AuthorAndTimestamp(message, Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp))
+            }
             if (isNewDay) {
                 DayHeader(
                     userFriendlyDate(message.localDate)
@@ -238,52 +270,29 @@ fun RowScope.DayHeaderLine() {
 }
 
 @Composable
-fun Message(
+fun AuthorAndTimestamp(
     message: IMMessage,
-    isFirstMessageByAuthor: Boolean,
+    modifier: Modifier = Modifier,
 ) {
-    val spaceBetweenAuthors = if (isFirstMessageByAuthor) {
-        Modifier.padding(top = 8.dp)
-    } else {
-        Modifier
-    }
-    Column(
-        modifier = spaceBetweenAuthors.padding(start = 8.dp, end = 8.dp),
-    ) {
-        if (isFirstMessageByAuthor) {
-            AuthorAndTimestamp(message)
-        }
-        val uriHandler = LocalUriHandler.current
-        ClickableText(
-            text = message.content,
-            // Need to set `style`, otherwise the text doesn't render white on dark theme.
-            style = TextStyle(color = LocalContentColor.current),
-            onClick = { offset ->
-                val annotation = message.content
-                    .getStringAnnotations(tag = "URL", start = offset, end = offset)
-                    .firstOrNull() ?: return@ClickableText
-                uriHandler.openUri(annotation.item)
-            },
-            modifier = Modifier.padding(start = 4.dp, end = 4.dp),
-        )
-    }
-}
-
-@Composable
-fun AuthorAndTimestamp(message: IMMessage) {
     val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-    Row(modifier = Modifier.semantics(mergeDescendants = true) {}) {
+    Row(modifier = modifier.fillMaxWidth()) {
         Text(
             text = message.author,
-            modifier = Modifier.alignBy(FirstBaseline),
             style = MaterialTheme.typography.subtitle1,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.alignBy(LastBaseline),
         )
         Spacer(modifier = Modifier.width(8.dp))
         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
             Text(
                 text = message.localDateTime.format(timeFormatter),
                 style = MaterialTheme.typography.caption,
-                modifier = Modifier.alignBy(FirstBaseline),
+                maxLines = 1,
+                modifier = Modifier
+                    .alignBy(LastBaseline)
+                    .weight(1f)
+                    .widthIn(min = 64.dp),
             )
         }
     }
