@@ -98,6 +98,7 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
 
     fun close() {
         this.out.close()
+        this._events.close()
         this.conn.close()
     }
 

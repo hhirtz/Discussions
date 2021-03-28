@@ -6,11 +6,11 @@ import android.content.Intent
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
+import io.ktor.util.network.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.*
@@ -45,6 +45,7 @@ class IRCService : Service() {
     private var s: IRCSession? = null
     private val started = AtomicBoolean(false)
     private val idle = AtomicBoolean(false)
+    private var connectJob: CompletableJob? = null
     private val preferences by lazy { PreferencesRepository(this.applicationContext) }
 
     override fun onBind(intent: Intent?): IBinder {
@@ -77,33 +78,38 @@ class IRCService : Service() {
         this.startForeground(1, notification.build())
         CoroutineScope(Dispatchers.Main).launch {
             val service = this@IRCService
-            service.stayConnected(service.preferences.clientParams)
+            service.stayUpToDateWithParams(service.preferences.clientParams)
         }
         return START_STICKY
     }
 
     // Must be launched from the main thread.
-    private suspend fun stayConnected(paramFlow: Flow<IRCClientParams?>) {
-        Log.w("IRC_SERVICE", "Launching connection loop")
+    private suspend fun stayUpToDateWithParams(paramFlow: Flow<IRCClientParams?>) {
         paramFlow.collectLatest { params ->
             if (params == null) {
-                Log.w("IRC_SERVICE", "Parameter changed, they were null")
                 return@collectLatest
             }
-            Log.w("IRC_SERVICE", "Parameter changed, connecting to IRC server")
-            while (true) {
-                this.s?.close()
-                val session = withContext(Dispatchers.IO) { connect(params) }
-                Log.w("IRC_SERVICE", "Connected to server, starting event loop")
-                this.s = session
-                this.model?.ircState?.value = session.state
-                session.events.consumeEach {
-                    // TODO find a better way to wait for connection to be closed.
-                }
-                session.close()
-                this.s = null
-                this.model?.ircState?.value = null
+            this.stayConnected(params)
+        }
+    }
+
+    private suspend fun stayConnected(params: IRCClientParams) {
+        while (true) {
+            this.s?.close()
+            val session = withContext(Dispatchers.IO) {
+                val job = Job()
+                this@IRCService.connectJob = job
+                connect(params, job)
             }
+            this@IRCService.connectJob = null
+            this.s = session
+            this.model?.ircState?.value = session.state
+            session.events.consumeEach {
+                // TODO find a better way to wait for connection to be closed.
+            }
+            session.close()
+            this.s = null
+            this.model?.ircState?.value = null
         }
     }
 
@@ -138,6 +144,7 @@ class IRCService : Service() {
         }
     }
 
+    // Send IDLE to decrease the number of message we receive.
     fun idle() {
         if (!this.idle.getAndSet(true)) {
             CoroutineScope(Dispatchers.Main).launch {
@@ -146,30 +153,41 @@ class IRCService : Service() {
         }
     }
 
+    // Remove IDLE status and, if we're not connected, try to reconnect now.
     fun resume() {
         if (this.idle.getAndSet(false)) {
             CoroutineScope(Dispatchers.Main).launch {
+                this@IRCService.connectJob?.complete()
                 this@IRCService.s?.resume()
             }
         }
     }
 }
 
-suspend fun connect(params: IRCClientParams): IRCSession {
-    var backoff = 1000L // milliseconds
+// Keep connecting until it succeeds.  `resetBackoff.complete()` may be called to retry immediately,
+// and reset the exponential backoff.
+suspend fun connect(params: IRCClientParams, resetBackoff: CompletableJob): IRCSession {
+    var backoff = 1.4f // seconds
     while (true) {
         try {
             return tryConnect(params)
+        } catch (e: UnresolvedAddressException) {
+            // Connection failed, retry.
         } catch (e: IOException) {
-            Log.i("IRC_SERVICE", "Connection failed")
+            // Connection failed, retry.
         }
-        if (backoff < 10 * 60 * 1000) {
-            backoff *= 3
+        if (backoff < 10 * 60) {
+            backoff *= backoff
         }
-        delay(backoff)
+        withTimeoutOrNull((backoff * 1000f).toLong()) {
+            // Wait for either `backoff` seconds, or for `resetBackoff` to be completed.
+            resetBackoff.join()
+            backoff = 1.4f
+        }
     }
 }
 
+// Attempts to connect to the IRC server.  Throws an exception on failure.
 suspend fun tryConnect(params: IRCClientParams): IRCSession {
     var conn = aSocket(ActorSelectorManager(Dispatchers.IO))
         .tcp()

@@ -3,17 +3,16 @@ package site.srht.taiite.discussions.irc
 import android.util.Log
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.launch
 import java.io.IOException
 
 internal const val CHANNEL_CAPACITY = 64
 internal const val READ_LIMIT = 4096
+internal const val WRITE_TIMEOUT = 100L // milliseconds
 
 //fun Socket.ircSplit(): Pair<ReceiveChannel<IRCMessage>, SendChannel<IRCMessage>> =
 //    readChannel(this) to writeChannel(this)
@@ -53,21 +52,22 @@ internal fun writeChannel(conn: ReadWriteSocket): SendChannel<IRCMessage> {
                 }
                 if (message == null) {
                     awake = false
-                    writer.flush()
+                    withTimeout(WRITE_TIMEOUT) { writer.flush() }
                     continue
                 }
                 awake = true
-                // TODO set write deadline
                 val s = "$message\r\n".toByteArray()
-                writer.writeFully(s, 0, s.size)
+                withTimeout(WRITE_TIMEOUT) { writer.writeFully(s, 0, s.size) }
                 Log.d("IRC_CONN", "Sent $message")
             }
+        } catch (e: TimeoutCancellationException) {
+            // Write timed out, stop the loop.
         } catch (e: ClosedReceiveChannelException) {
             // The user closed "out", stop the loop.
         } catch (e: ClosedWriteChannelException) {
             // The connection has closed, stop the loop.
         } catch (e: IOException) {
-            Log.w("IRC_CONN", "Connection closed in conn.kt")
+            // Some other I/O exception, stop the loop.
         }
         conn.close()
     }
