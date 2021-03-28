@@ -116,11 +116,19 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
     }
 
     suspend fun privmsg(target: String, content: String) {
+        val maxMessageLength = this.state.featureLINELEN -
+                ":!@ PRIVMSG :".length -
+                this.state.nickname.value.length -
+                this.state.username.value.length -
+                this.state.hostname.value.length -
+                target.length
         for (line in content.splitToSequence('\n')) {
             if (line.isBlank()) {
                 continue
             }
-            this.send("PRIVMSG", target, line)
+            for (chunk in line.chunkedSequence(maxMessageLength)) {
+                this.send("PRIVMSG", target, chunk)
+            }
         }
     }
 
@@ -274,6 +282,7 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                             this._state.featureCHANTYPES = value.toCharArray()
                         }
                         "IDLE" -> this._state.featureIDLE = true
+                        "LINELEN" -> this._state.featureLINELEN = value.toIntOrNull() ?: 512
                         "PREFIX" -> {
                             if (value == "") {
                                 this._state.featurePREFIX = charArrayOf() to charArrayOf()

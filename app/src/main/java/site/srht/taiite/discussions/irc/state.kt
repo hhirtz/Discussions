@@ -128,6 +128,7 @@ abstract class IRCState internal constructor() {
     abstract val featureCASEMAPPING: String
     abstract val featureCHANTYPES: CharArray
     abstract val featureIDLE: Boolean
+    abstract val featureLINELEN: Int
     abstract val featurePREFIX: Pair<CharArray, CharArray>
 
     fun isChannel(name: String): Boolean =
@@ -224,6 +225,7 @@ internal class MutableIRCState(
     override var featureCASEMAPPING = "rfc1459"
     override var featureCHANTYPES = charArrayOf('#', '&', '+', '!')
     override var featureIDLE = false
+    override var featureLINELEN = 512
     override var featurePREFIX = charArrayOf('o', 'v') to charArrayOf('@', '+')
 
     fun cleanUser(user: IRCUser) {
