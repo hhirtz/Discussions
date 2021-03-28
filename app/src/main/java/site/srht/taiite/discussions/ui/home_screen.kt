@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.accompanist.insets.LocalWindowInsets
 import dev.chrisbanes.accompanist.insets.navigationBarsPadding
 import dev.chrisbanes.accompanist.insets.toPaddingValues
-import kotlinx.coroutines.delay
 import site.srht.taiite.discussions.irc.IRCChannel
 
 @Composable
@@ -172,11 +171,6 @@ fun JoinChannelForm(
         modifier = Modifier.fillMaxWidth(0.8f),
     )
     LaunchedEffect(null) { // Focus the text field when the popup is drawn.
-        // It seems the coroutine must be suspended (exited) once in order to show the keyboard,
-        // otherwise the text field receives the focus but does not show it.  The delay is set to 3
-        // frames (48ms) so that the async runtime has time to run the coroutine responsible for the
-        // composition of "OutlinedTextField" before this (looks pretty consistent so far).
-        delay(48)
         textFieldFocus.requestFocus()
     }
 }
