@@ -250,7 +250,6 @@ internal class MutableIRCState(
             if (newNow == now) {
                 state.typings.remove(typing)
             }
-            // TODO send notification to user of Session
         }
     }
 
