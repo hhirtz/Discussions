@@ -227,7 +227,7 @@ class IRCSession(private val conn: ReadWriteSocket, params: IRCSessionParams) {
                 else -> this.handleMessageRegistered(msg)
             }
             ERR_NICKNAMEINUSE -> {
-                this._state.nickname.value = "${this._state.nickname}_"
+                this._state.nickname.value = "${this._state.nickname.value}_"
                 this._state.nicknameCM = "${this._state.nicknameCM}_"
                 this.send("NICK", this._state.nickname.value)
             }
