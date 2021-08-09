@@ -3,7 +3,7 @@ package site.srht.taiite.discussions.ui
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
-import dev.chrisbanes.accompanist.insets.ProvideWindowInsets
+import com.google.accompanist.insets.ProvideWindowInsets
 
 // TODO customise
 private val IRCLightPalette = lightColors()

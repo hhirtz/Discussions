@@ -14,8 +14,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.accompanist.insets.navigationBarsWithImePadding
-import dev.chrisbanes.accompanist.insets.statusBarsPadding
+import com.google.accompanist.insets.navigationBarsWithImePadding
+import com.google.accompanist.insets.statusBarsPadding
 import kotlin.random.Random
 
 @Composable

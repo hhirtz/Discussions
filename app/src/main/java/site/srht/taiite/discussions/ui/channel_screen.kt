@@ -35,7 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.accompanist.insets.navigationBarsWithImePadding
+import com.google.accompanist.insets.navigationBarsWithImePadding
 import kotlinx.coroutines.launch
 import site.srht.taiite.discussions.R
 import site.srht.taiite.discussions.irc.IMMessage
