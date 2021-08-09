@@ -25,7 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.LocalWindowInsets
 import com.google.accompanist.insets.navigationBarsPadding
-import com.google.accompanist.insets.toPaddingValues
+import com.google.accompanist.insets.rememberInsetsPaddingValues
 import site.srht.taiite.discussions.irc.IRCChannel
 
 @Composable
@@ -90,7 +90,10 @@ fun ChannelList(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        contentPadding = LocalWindowInsets.current.systemBars.toPaddingValues(top = false),
+        contentPadding = rememberInsetsPaddingValues(
+            insets = LocalWindowInsets.current.systemBars,
+            applyTop = false,
+        ),
         modifier = modifier,
     ) {
         items(channels) {

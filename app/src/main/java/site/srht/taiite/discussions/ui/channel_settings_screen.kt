@@ -19,8 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.LocalWindowInsets
+import com.google.accompanist.insets.rememberInsetsPaddingValues
 import com.google.accompanist.insets.statusBarsPadding
-import com.google.accompanist.insets.toPaddingValues
 import site.srht.taiite.discussions.irc.IRCChannel
 
 @Composable
@@ -33,7 +33,10 @@ fun ChannelSettingsScreen(
     members = members.sortedWith { a, b -> a.name.name.compareTo(b.name.name) }
     Surface {
         LazyColumn(
-            contentPadding = LocalWindowInsets.current.systemBars.toPaddingValues(top = false),
+            contentPadding = rememberInsetsPaddingValues(
+                insets = LocalWindowInsets.current.systemBars,
+                applyTop = false,
+            ),
             modifier = Modifier.fillMaxSize(),
         ) {
             item {

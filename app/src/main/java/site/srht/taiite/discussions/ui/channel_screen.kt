@@ -233,10 +233,10 @@ fun userFriendlyDate(then: LocalDate): String {
         val woyThen = then.get(week.weekOfYear())
         val woyNow = now.get(week.weekOfYear())
         if (woyThen == woyNow) {
-            return "This ${then.dayOfWeek.toString().toLowerCase(Locale.getDefault())}"
+            return "This ${then.dayOfWeek.toString().lowercase()}"
         }
         if (woyThen + 1 == woyNow) {
-            return "Last ${then.dayOfWeek.toString().toLowerCase(Locale.getDefault())}"
+            return "Last ${then.dayOfWeek.toString().lowercase()}"
         }
     }
     val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)
@@ -281,7 +281,7 @@ fun AuthorAndTimestamp(
     val authorColor = remember(message.author) {
         var hash = 0
         for (c in message.author) {
-            hash = (hash shl 5) - hash + c.toInt()
+            hash = (hash shl 5) - hash + c.code
         }
         when (abs(hash) % 8) {
             0 -> R.color.username_1
